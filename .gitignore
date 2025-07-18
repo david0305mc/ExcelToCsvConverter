@@ -1,0 +1,36 @@
+## 기본: Visual Studio / .NET 빌드 무시
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## VS 임시 파일
+*.cache
+*.dbmdl
+*.VC.db
+*.vscode/
+
+## NuGet 관련
+*.nupkg
+*.snupkg
+*.nuspec
+project.lock.json
+packages/
+*.deps.json
+
+## Windows Forms 앱 특화
+*.Designer.cs.dll
+*.exe
+*.pdb
+
+## 기타 개인 설정 무시
+.vs/
+*.psess
+*.vsp
+*.vssscc
+*.vspscc
+
+## Mac 관련 (예방)
+.DS_Store
