@@ -11,8 +11,14 @@ namespace ExcelToCsvConverter
         public MainForm()
         {
             InitializeComponent();
+
+            // 기본 CSV 저장 경로 (상대경로 → 절대경로 변환)
+            string defaultDstPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\Assets\Resources\Data"));
+
+            // 경로 설정
             srcPath = Properties.Settings.Default.ExcelPath;
-            dstPath = Properties.Settings.Default.CsvPath;
+            dstPath = string.IsNullOrWhiteSpace(Properties.Settings.Default.CsvPath) ? defaultDstPath : Properties.Settings.Default.CsvPath;
+
             lblSource.Text = srcPath;
             lblTarget.Text = dstPath;
         }
