@@ -1,0 +1,36 @@
+﻿Id|Name|Desc|Icon|Weight|MaxSkillCount|WeaponType
+int|string|string|string|int|int|int
+1|초월의 힘|공격력 <color=#40FF00>▲▲▲▲</color>|ability_icon_1|300|2|0
+2|폭발하는 분노|체력 50% 미만 시\n공격력 <color=#40FF00>▲▲▲▲</color>|ability_icon_2|10|1|0
+3|질풍의 맹진|공격 속도 <color=#40FF00>▲▲▲</color>|ability_icon_3|10|2|0
+4|빛의 가속|체력 30% 미만 시\n공격 속도 <color=#40FF00>▲▲▲</color>|ability_icon_4|10|1|0
+5|치명적인 일격|크리티컬 데미지 <color=#40FF00>▲▲▲▲</color>\n크리티컬 확률 <color=#40FF00>▲</color>|ability_icon_5|10|1|0
+6|신의 일격|체력 30% 미만 시\n크리티컬 확률 <color=#40FF00>▲▲▲</color>|ability_icon_6|10|1|0
+7|강철의 전신|최대 체력 <color=#40FF00>▲▲</color>\n즉시 회복 <color=#40FF00>▲▲</color>|ability_icon_7|10|1|0
+8|피의 각성|적 처치 시 체력 <color=#40FF00>▲</color> 회복|ability_icon_8|10|1|0
+9|관통의 창|화살이 적을 관통|ability_icon_9|100|1|2
+10|반동의 파도|맞은 화살 1회 튕김|ability_icon_10|10|3|2
+11|파괴의 반격|벽에 맞은 화살 1회 튕김|ability_icon_11|100|3|2
+12|폭풍의 화살|두 발 동시에 발사\n공속 <color=#FF735A>▼▼</color>|ability_icon_12|100|1|2
+13|쌍발 난사|전방 화살 추가 발사\n공격력 <color=#FF735A>▼▼</color>|ability_icon_13|10|1|2
+14|사신의 화살|대각선 화살 추가 발사|ability_icon_14|100|1|2
+15|지옥의 불꽃|화염 지속 피해 (0.25초당 18% 데미지)|ability_icon_15|10|2|0
+16|죽음의 손길|독 지속 피해 (1초당 35% 데미지)|ability_icon_16|10|2|0
+17|혹한의 손길|적 2초간 빙결|ability_icon_17|10|2|0
+18|천둥의 연쇄파|번개 연쇄 데미지 (주 타겟 25%, 단일 적 30%)|ability_icon_18|0|1|0
+19|신성의 손길|화살이 적을 추적하여 명중|ability_icon_19|10|1|2
+20|화염의 정령|불 정령 소환 - 불 도트 데미지|ability_icon_20|100|1|0
+21|서리의 정령|얼음 정령 소환 - 얼리기|ability_icon_21|10|1|0
+22|맹렬한 돌진|대쉬 + 1|ability_icon_22|10|1|0
+23|신속한 회피|대쉬 쿨타임 감소 <color=#40FF00>▲▲▲▲</color>|ability_icon_23|0|1|0
+24|대쉬 후 랜덤 공격|대쉬 후 랜덤한 방향으로 공격|ability_icon_24|10|1|0
+25|대쉬 공격|대쉬가 끝날 때 전방에 공격|ability_icon_25|10|1|0
+26|얼음 스트라이크|랜덤한 위치에 얼음 스트라이크|ability_icon_26|500|3|0
+27|검기로 변경|모든 발사체가 앞으로 나아감|ability_icon_27|100|1|0
+28|번개 후속타|신성한 번개가 떨어짐|ability_icon_28|500|1|0
+29|레이저 정령|레이저 정령 소환 - 레이저 데미지|ability_icon_29|10|1|0
+30|에너지 블라스트|에너지를 방출해 적을 밀쳐냄|ability_icon_30|10|1|0
+31|라이트닝 링|주변으로 광역 데미지|ability_icon_31|10|1|0
+32|무적의 시간|5초마다 1초간 무적|ability_icon_32|0|1|0
+33|칼 발사!|2초마다 자동으로 칼 투척|ability_icon_33|10|5|0
+999|테스트|테스트|ability_icon_34|0|1|0
