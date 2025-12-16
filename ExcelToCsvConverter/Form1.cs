@@ -1,4 +1,4 @@
-using System.Text;
+ï»¿using System.Text;
 using ClosedXML.Excel;
 
 namespace ExcelToCsvConverter
@@ -12,12 +12,14 @@ namespace ExcelToCsvConverter
         {
             InitializeComponent();
 
-            // ±âº» CSV ÀúÀå °æ·Î (»ó´ë°æ·Î ¡æ Àı´ë°æ·Î º¯È¯)
-            string defaultDstPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\Assets\Resources\Data"));
+            string defaultDstPath = Path.GetFullPath(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\Assets\Resources\Data")
+            );
 
-            // °æ·Î ¼³Á¤
             srcPath = Properties.Settings.Default.ExcelPath;
-            dstPath = string.IsNullOrWhiteSpace(Properties.Settings.Default.CsvPath) ? defaultDstPath : Properties.Settings.Default.CsvPath;
+            dstPath = string.IsNullOrWhiteSpace(Properties.Settings.Default.CsvPath)
+                ? defaultDstPath
+                : Properties.Settings.Default.CsvPath;
 
             lblSource.Text = srcPath;
             lblTarget.Text = dstPath;
@@ -51,14 +53,18 @@ namespace ExcelToCsvConverter
         {
             if (string.IsNullOrWhiteSpace(srcPath) || string.IsNullOrWhiteSpace(dstPath))
             {
-                MessageBox.Show("°æ·Î¸¦ ¸ğµÎ ¼±ÅÃÇØÁÖ¼¼¿ä.");
+                MessageBox.Show("ê²½ë¡œë¥¼ ëª¨ë‘ ì„ íƒí•´ì£¼ì„¸ìš”.");
                 return;
             }
 
             try
             {
                 Converter.Convert(srcPath, dstPath, Converter.TargetType.Client);
-                var result = MessageBox.Show("º¯È¯ ¿Ï·á!\nÀúÀå Æú´õ¸¦ ¿©½Ã°Ú½À´Ï±î?", "¿Ï·á", MessageBoxButtons.OKCancel);
+                var result = MessageBox.Show(
+                    "ë³€í™˜ ì™„ë£Œ!\nì €ì¥ í´ë”ë¥¼ ì—¬ì‹œê² ìŠµë‹ˆê¹Œ?",
+                    "ì™„ë£Œ",
+                    MessageBoxButtons.OKCancel
+                );
 
                 if (result == DialogResult.OK)
                 {
@@ -67,7 +73,7 @@ namespace ExcelToCsvConverter
             }
             catch (Exception ex)
             {
-                MessageBox.Show("¿À·ù ¹ß»ı: " + ex.Message);
+                MessageBox.Show("ì˜¤ë¥˜ ë°œìƒ: " + ex.Message);
             }
         }
     }
@@ -89,13 +95,16 @@ namespace ExcelToCsvConverter
             foreach (var file in di.GetFiles("*.xlsx"))
             {
                 using var workbook = new XLWorkbook(file.FullName);
+
                 foreach (var sheet in workbook.Worksheets)
                 {
-                    // ¿­ Á¦°Å
+                    // ğŸ”¹ ì—´ í•„í„°ë§
                     for (int col = sheet.LastColumnUsed().ColumnNumber(); col >= 1; col--)
                     {
-                        var header = sheet.Cell(1, col).GetValue<string>().Trim();
-                        var typeStr = sheet.Cell(3, col).GetValue<string>().ToLower().Trim();
+                        var header = Sanitize(sheet.Cell(1, col).GetValue<string>()).Trim();
+                        var typeStr = Sanitize(sheet.Cell(3, col).GetValue<string>())
+                            .ToLower()
+                            .Trim();
 
                         if (string.IsNullOrEmpty(header) ||
                             typeStr == "nodata" ||
@@ -106,31 +115,48 @@ namespace ExcelToCsvConverter
                         }
                     }
 
-                    // 3Çà »èÁ¦
+                    // ğŸ”¹ íƒ€ì… í–‰ ì œê±°
                     sheet.Row(3).Delete();
 
-                    // ºó Çà Á¦°Å (1¿­ ±âÁØ)
+                    // ğŸ”¹ ë¹ˆ í–‰ ì œê±° (1ì—´ ê¸°ì¤€)
                     for (int row = sheet.LastRowUsed().RowNumber(); row >= 1; row--)
                     {
-                        var value = sheet.Cell(row, 1).GetValue<string>();
+                        var value = Sanitize(sheet.Cell(row, 1).GetValue<string>());
                         if (string.IsNullOrWhiteSpace(value))
                             sheet.Row(row).Delete();
                     }
 
-                    // CSV·Î ÀúÀå
+                    // ğŸ”¹ CSV ì €ì¥ (BOM ì—†ëŠ” UTF-8)
                     var csvPath = Path.Combine(dstPath, $"{sheet.Name}.csv");
-                    using var writer = new StreamWriter(csvPath, false, Encoding.UTF8);
+                    using var writer = new StreamWriter(csvPath, false, new UTF8Encoding(false));
+
+                    int lastCol = sheet.LastColumnUsed().ColumnNumber();
+
                     foreach (var row in sheet.RowsUsed())
                     {
                         var values = new List<string>();
-                        foreach (var cell in row.CellsUsed())
+                        for (int col = 1; col <= lastCol; col++)
                         {
-                            values.Add(cell.GetValue<string>().Replace("|", "£ü")); // | ¹®ÀÚ Ä¡È¯
+                            var cellValue = Sanitize(row.Cell(col).GetValue<string>())
+                                .Replace("|", "ï½œ"); // íŒŒì´í”„ ë¬¸ì ì¹˜í™˜
+                            values.Add(cellValue);
                         }
+
                         writer.WriteLine(string.Join("|", values));
                     }
                 }
             }
+        }
+
+        // ğŸ”¹ ë¬¸ìì—´ ì •ê·œí™” (ë„¤ëª¨ ë¬¸ì ë°©ì§€ í•µì‹¬)
+        private static string Sanitize(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+
+            return s
+                .Replace("\u00A0", " ") // NBSP (Non-Breaking Space)
+                .Replace("\u200B", "")  // Zero-Width Space
+                .Replace("\uFEFF", ""); // BOM / ZWNBSP
         }
     }
 }
