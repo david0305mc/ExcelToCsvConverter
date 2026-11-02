@@ -1,4 +1,4 @@
-﻿ID|EffectGroup|Memo|ConditionType|ConditionValue1|ConditionValue2|AttributeType|AttributeValue|AttributeValue2
+ID|EffectGroup|Memo|ConditionType|ConditionValue1|ConditionValue2|AttributeType|AttributeValue|AttributeValue2
 int|int|string|ability_condition_type|int|int|attribute_type|int|int
 0|1|초월의 힘|0|0|0|1|30|0
 1|2|폭발하는 분노|1|50|100|1|50|0

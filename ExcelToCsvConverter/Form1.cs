@@ -73,7 +73,7 @@ namespace ExcelToCsvConverter
             }
             catch (Exception ex)
             {
-                MessageBox.Show("오류 발생: " + ex.Message);
+                MessageBox.Show(this, ex.Message, "변환 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
@@ -88,63 +88,180 @@ namespace ExcelToCsvConverter
 
         public static void Convert(string srcPath, string dstPath, TargetType targetType)
         {
-            if (!Directory.Exists(srcPath) || !Directory.Exists(dstPath))
-                throw new DirectoryNotFoundException("Source or Destination path does not exist.");
-
-            var di = new DirectoryInfo(srcPath);
-            foreach (var file in di.GetFiles("*.xlsx"))
+            var context = new ConversionContext(srcPath, dstPath);
+            try
             {
-                using var workbook = new XLWorkbook(file.FullName);
+                if (!Directory.Exists(srcPath))
+                    throw new DirectoryNotFoundException("Excel 원본 폴더가 존재하지 않습니다.");
+                if (!Directory.Exists(dstPath))
+                    throw new DirectoryNotFoundException("CSV 저장 폴더가 존재하지 않습니다.");
 
-                foreach (var sheet in workbook.Worksheets)
+                context.Stage = "Excel 파일 목록 읽기";
+                var di = new DirectoryInfo(srcPath);
+                foreach (var file in di.GetFiles("*.xlsx"))
                 {
-                    // 🔹 열 필터링
-                    for (int col = sheet.LastColumnUsed().ColumnNumber(); col >= 1; col--)
-                    {
-                        var header = Sanitize(sheet.Cell(1, col).GetValue<string>()).Trim();
-                        var typeStr = Sanitize(sheet.Cell(3, col).GetValue<string>())
-                            .ToLower()
-                            .Trim();
+                    context.FilePath = file.FullName;
+                    context.SheetName = null;
+                    context.OutputPath = null;
+                    context.SetStage("Excel 파일 열기");
+                    using var workbook = new XLWorkbook(file.FullName);
 
-                        if (string.IsNullOrEmpty(header) ||
-                            typeStr == "nodata" ||
-                            (targetType == TargetType.Client && typeStr == "server") ||
-                            (targetType == TargetType.Server && typeStr == "client"))
+                    foreach (var sheet in workbook.Worksheets)
+                    {
+                        context.SheetName = sheet.Name;
+                        context.OutputPath = null;
+                        context.SetStage("시트 구조 확인");
+                        context.OutputPath = Path.Combine(dstPath, $"{sheet.Name}.csv");
+                        var lastColumn = sheet.LastColumnUsed();
+                        if (lastColumn == null)
+                            throw new InvalidDataException("빈 시트입니다. 1행의 컬럼명과 데이터를 확인해주세요.");
+
+                        // 삭제로 위치가 바뀌어도 오류에는 원본 Excel 좌표를 표시한다.
+                        var originalColumns = Enumerable.Range(1, lastColumn.ColumnNumber()).ToList();
+                        var headers = new Dictionary<int, string>();
+
+                        for (int col = originalColumns.Count; col >= 1; col--)
                         {
-                            sheet.Column(col).Delete();
+                            context.SetStage("컬럼명 읽기");
+                            var header = ReadCell(sheet, 1, col, 1, col, null, context).Trim();
+                            headers[col] = header;
+                            context.SetStage("컬럼 구분 읽기 (3행)");
+                            var typeStr = ReadCell(sheet, 3, col, 3, col, header, context)
+                                .ToLowerInvariant().Trim();
+
+                            if (string.IsNullOrEmpty(header) ||
+                                typeStr == "nodata" ||
+                                (targetType == TargetType.Client && typeStr == "server") ||
+                                (targetType == TargetType.Server && typeStr == "client"))
+                            {
+                                context.Stage = "컬럼 제외";
+                                sheet.Column(col).Delete();
+                                originalColumns.RemoveAt(col - 1);
+                            }
+                        }
+
+                        context.SetStage("필터링 결과 확인");
+                        if (originalColumns.Count == 0)
+                            throw new InvalidDataException("변환할 컬럼이 없습니다. 1행의 컬럼명과 3행의 client/server/nodata 구분을 확인해주세요.");
+
+                        context.SetStage("컬럼 구분 행 제거");
+                        context.Row = 3;
+                        sheet.Row(3).Delete();
+
+                        context.SetStage("빈 행 확인");
+                        var lastRow = sheet.LastRowUsed();
+                        if (lastRow == null)
+                            throw new InvalidDataException("컬럼 구분 행을 제거한 뒤 남은 데이터가 없습니다.");
+                        var originalRows = Enumerable.Range(1, lastRow.RowNumber())
+                            .Select(row => row >= 3 ? row + 1 : row).ToList();
+
+                        // 기존 규칙대로 필터링 후 첫 컬럼이 빈 행을 제외한다.
+                        for (int row = originalRows.Count; row >= 1; row--)
+                        {
+                            context.SetStage("빈 행 확인");
+                            int originalCol = originalColumns[0];
+                            var value = ReadCell(sheet, row, 1, originalRows[row - 1],
+                                originalCol, headers[originalCol], context);
+                            if (string.IsNullOrWhiteSpace(value))
+                            {
+                                context.Stage = "빈 행 제거";
+                                sheet.Row(row).Delete();
+                                originalRows.RemoveAt(row - 1);
+                            }
+                        }
+
+                        context.SetStage("CSV 파일 열기");
+                        using (var writer = new StreamWriter(context.OutputPath, false, new UTF8Encoding(false)))
+                        {
+                            foreach (var row in sheet.RowsUsed())
+                            {
+                                var values = new List<string>();
+                                int originalRow = originalRows[row.RowNumber() - 1];
+                                for (int col = 1; col <= originalColumns.Count; col++)
+                                {
+                                    context.SetStage("셀 값 변환");
+                                    int originalCol = originalColumns[col - 1];
+                                    var cellValue = ReadCell(sheet, row.RowNumber(), col, originalRow,
+                                        originalCol, headers[originalCol], context).Replace("|", "｜");
+                                    values.Add(cellValue);
+                                }
+
+                                context.SetStage("CSV 행 저장");
+                                context.Row = originalRow;
+                                writer.WriteLine(string.Join("|", values));
+                            }
+
+                            context.SetStage("CSV 저장 마무리");
                         }
                     }
 
-                    // 🔹 타입 행 제거
-                    sheet.Row(3).Delete();
-
-                    // 🔹 빈 행 제거 (1열 기준)
-                    for (int row = sheet.LastRowUsed().RowNumber(); row >= 1; row--)
-                    {
-                        var value = Sanitize(sheet.Cell(row, 1).GetValue<string>());
-                        if (string.IsNullOrWhiteSpace(value))
-                            sheet.Row(row).Delete();
-                    }
-
-                    // 🔹 CSV 저장 (BOM 없는 UTF-8)
-                    var csvPath = Path.Combine(dstPath, $"{sheet.Name}.csv");
-                    using var writer = new StreamWriter(csvPath, false, new UTF8Encoding(false));
-
-                    int lastCol = sheet.LastColumnUsed().ColumnNumber();
-
-                    foreach (var row in sheet.RowsUsed())
-                    {
-                        var values = new List<string>();
-                        for (int col = 1; col <= lastCol; col++)
-                        {
-                            var cellValue = Sanitize(row.Cell(col).GetValue<string>())
-                                .Replace("|", "｜"); // 파이프 문자 치환
-                            values.Add(cellValue);
-                        }
-
-                        writer.WriteLine(string.Join("|", values));
-                    }
+                    context.SheetName = null;
+                    context.OutputPath = null;
+                    context.SetStage("Excel 파일 닫기");
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(context.FormatError(ex), ex);
+            }
+        }
+
+        private static string ReadCell(IXLWorksheet sheet, int row, int col,
+            int originalRow, int originalCol, string? header, ConversionContext context)
+        {
+            context.Row = originalRow;
+            context.Column = originalCol;
+            context.Header = header;
+            return Sanitize(sheet.Cell(row, col).GetValue<string>());
+        }
+
+        private sealed class ConversionContext(string sourcePath, string destinationPath)
+        {
+            public string Stage { get; set; } = "폴더 경로 확인";
+            public string? FilePath { get; set; }
+            public string? SheetName { get; set; }
+            public string? OutputPath { get; set; }
+            public int? Row { get; set; }
+            public int? Column { get; set; }
+            public string? Header { get; set; }
+
+            public void SetStage(string stage)
+            {
+                Stage = stage;
+                Row = null;
+                Column = null;
+                Header = null;
+            }
+
+            public string FormatError(Exception exception)
+            {
+                var message = new StringBuilder("Excel → CSV 변환 중 오류가 발생했습니다.");
+                message.AppendLine().AppendLine().AppendLine($"작업: {Stage}");
+                if (FilePath != null)
+                {
+                    message.AppendLine($"파일: {Path.GetFileName(FilePath)}");
+                    message.AppendLine($"원본 경로: {FilePath}");
+                }
+                else
+                    message.AppendLine($"원본 폴더: {sourcePath}");
+                if (SheetName != null)
+                    message.AppendLine($"시트: {SheetName}");
+                if (Column is int column)
+                {
+                    string letter = XLHelper.GetColumnLetterFromNumber(column);
+                    string name = string.IsNullOrWhiteSpace(Header) ? "컬럼명 없음 또는 읽기 실패" : Header;
+                    message.AppendLine($"컬럼: {name} ({letter}열, {column}번째)");
+                    if (Row is int cellRow)
+                        message.AppendLine($"셀: {letter}{cellRow} (원본 Excel 기준)");
+                }
+                if (Row is int row)
+                    message.AppendLine($"행: {row} (원본 Excel 기준)");
+                message.AppendLine($"저장 경로: {OutputPath ?? destinationPath}");
+                message.AppendLine().AppendLine($"원인: {exception.Message}");
+                if (exception.GetBaseException() != exception)
+                    message.AppendLine($"상세 원인: {exception.GetBaseException().Message}");
+                message.Append($"오류 유형: {exception.GetType().Name}");
+                return message.ToString();
             }
         }
 

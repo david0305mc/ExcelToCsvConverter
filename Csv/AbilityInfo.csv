@@ -1,4 +1,4 @@
-﻿Id|Name|Desc|Icon|Weight|MaxSkillCount|WeaponType
+Id|Name|Desc|Icon|Weight|MaxSkillCount|WeaponType
 int|string|string|string|int|int|int
 1|초월의 힘|공격력 <color=#40FF00>▲▲▲▲</color>|ability_icon_1|300|2|0
 2|폭발하는 분노|체력 50% 미만 시\n공격력 <color=#40FF00>▲▲▲▲</color>|ability_icon_2|10|1|0
