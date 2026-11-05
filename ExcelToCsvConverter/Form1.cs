@@ -115,7 +115,8 @@ namespace ExcelToCsvConverter
                         context.SheetName = sheet.Name;
                         context.OutputPath = null;
                         context.SetStage("시트 구조 확인");
-                        context.OutputPath = Path.Combine(dstPath, $"{sheet.Name}.csv");
+                        var outputFileName = $"{char.ToUpperInvariant(sheet.Name[0])}{sheet.Name[1..]}.csv";
+                        context.OutputPath = Path.Combine(dstPath, outputFileName);
                         var lastColumn = sheet.LastColumnUsed();
                         if (lastColumn == null)
                             throw new InvalidDataException("빈 시트입니다. 1행의 컬럼명과 데이터를 확인해주세요.");
@@ -173,6 +174,13 @@ namespace ExcelToCsvConverter
                                 originalRows.RemoveAt(row - 1);
                             }
                         }
+
+                        // Windows에서는 덮어쓰기만 하면 기존 파일명의 대소문자가 유지된다.
+                        context.SetStage("CSV 파일명 대소문자 정리");
+                        var existingOutput = Directory.EnumerateFiles(dstPath, outputFileName).FirstOrDefault();
+                        if (existingOutput != null &&
+                            !string.Equals(Path.GetFileName(existingOutput), outputFileName, StringComparison.Ordinal))
+                            File.Move(existingOutput, context.OutputPath);
 
                         context.SetStage("CSV 파일 열기");
                         using (var writer = new StreamWriter(context.OutputPath, false, new UTF8Encoding(false)))
