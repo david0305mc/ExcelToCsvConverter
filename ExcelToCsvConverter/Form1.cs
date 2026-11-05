@@ -216,7 +216,14 @@ namespace ExcelToCsvConverter
             context.Row = originalRow;
             context.Column = originalCol;
             context.Header = header;
-            return Sanitize(sheet.Cell(row, col).GetValue<string>());
+            var cell = sheet.Cell(row, col);
+            // 외부 참조 수식을 재계산하지 않고 Excel에 저장된 결과값을 사용한다.
+            var value = cell.CachedValue;
+            if (value.IsError)
+                throw new InvalidDataException($"Excel에 저장된 셀 값이 오류입니다 ({value}). Excel에서 값을 수정한 뒤 저장해주세요.");
+            if (cell.HasFormula && value.IsBlank)
+                throw new InvalidDataException("수식의 계산 결과가 파일에 저장되어 있지 않습니다. Excel에서 계산 후 저장하거나 값으로 붙여넣어주세요.");
+            return Sanitize(value.ToString());
         }
 
         private sealed class ConversionContext(string sourcePath, string destinationPath)
