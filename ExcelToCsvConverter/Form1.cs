@@ -108,6 +108,10 @@ namespace ExcelToCsvConverter
 
                     foreach (var sheet in workbook.Worksheets)
                     {
+                        // '_'로 시작하는 참고용 시트는 검증과 CSV 저장에서 제외한다.
+                        if (sheet.Name.StartsWith("_", StringComparison.Ordinal))
+                            continue;
+
                         context.SheetName = sheet.Name;
                         context.OutputPath = null;
                         context.SetStage("시트 구조 확인");
